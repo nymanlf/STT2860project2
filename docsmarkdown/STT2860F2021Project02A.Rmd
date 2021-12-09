@@ -1,6 +1,6 @@
 ---
 title: "Project 2A: Galton Data"
-author: "PUT YOUR NAME HERE"
+author: "Lindsay Nyman"
 date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
 output: 
   html_document: 
@@ -13,7 +13,7 @@ output:
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  comment = NA
+  comment = NA 
 )
 ```
 ***
@@ -23,17 +23,26 @@ knitr::opts_chunk$set(
 ### Packages Used
 
 ```{r loadpackages}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(waffle)
+library(DT)
 
 ```
 
 ### Datasets Used
 
 ```{r loaddatamain}
-
+galtonfamiliesmain <- read.csv("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/galtonfamiliesmain.csv")
+glimpse(galtonfamiliesmain)
 ```
 
 ```{r loaddatasub}
-
+galtonfamiliessub <- read.csv("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/galtonfamiliessub.csv")
+glimpse(galtonfamiliessub)
 ```
 
 ### Collaborators
@@ -70,6 +79,49 @@ Load the `galtonfamiliesmain.csv` and `galtonfamiliessub.csv` datasets above und
 
 ```{r assembledata1}
 
+### if time come back and reorder this code because it wont run smooth due to order
+
+# made all of the heights their actual value for the sake of clean readability 
+galtonfamiliessub1 <- galtonfamiliessub %>% mutate(
+    Father = FatherR + 60,
+    Mother = MotherR + 60,
+    Height = HeightR + 60
+  ) %>%
+  select(FamilyID, Children, Father, Mother, Child, Height)
+
+galtonfamiliesjoined <- galtonfamiliessub1 %>%
+  mutate(FamilyID = as.character(FamilyID)) %>%
+  bind_rows(galtonfamiliesmain)  
+
+
+
+# changed data to numerical within familyid
+
+galtonfamiliesjoined1 <- galtonfamiliesjoined %>% 
+         mutate(FamilyID = as.numeric(ifelse(FamilyID == "136A", 205, FamilyID)))
+# calculate the average of both parents heights and save it as midparent then add midparent to the dataframe
+galtonfamiliesjoined2 <-  galtonfamiliesjoined1 %>% mutate(midparent = (Father + Mother) / 2)
+ 
+data_fams_mutated <- galtonfamiliesjoined2 %>%
+  mutate(
+    Midparent = (1.08 * Mother + Father) / 2,
+    Height = ifelse(Child == "Daughter", 1.08 * Height, Height)
+  )
+#arrange data into the correct order
+  galtonfamiliesordered <- data_fams_mutated %>% arrange(FamilyID, desc(Child), desc(Height))
+ 
+ datatable(galtonfamiliesordered)
+ 
+#renamed columns
+galtonfamilies_A <- rename(galtonfamiliesordered,
+                            familyid = FamilyID,
+                            num_children = Children,
+                            father_ht = Father,
+                            mother_ht = Mother,
+                            child_sex = Child,
+                            child_ht = Height)
+
+ 
 ```
 
 #### Dataset #2
@@ -77,8 +129,12 @@ Load the `galtonfamiliesmain.csv` and `galtonfamiliessub.csv` datasets above und
 Select the variables `familyid` and `num_children` and reduce the dataset so that it contains only one row per family. Again, use `datatable()` from the DT package to display the result.
 
 ```{r assembledata2}
-
+dataset2 <- galtonfamilies_A %>% 
+  group_by(familyid, num_children) %>%
+  summarise(familyid = mean(familyid),
+            num_children = mean(num_children))
 ```
+ 
 
 ### Part 1: Parent/Child Heights
 
@@ -92,7 +148,7 @@ knitr::include_graphics(path = "../images/galtonplot.png")
 
 #### Updated Scatterplot #1
 
-Create a scatterplot of child height (x-axis) versus mid-parent height (y-axis). Ordinarily, we might reverse the axes here because analysts would be more likely to model child height as a function of parent height, but we want to be able to compare the updated plot to Galton's original. Make your dots larger than the default and adjust transparency (`alpha`) to correct for overplotting and help show the density of points. 
+Create a scatterplot of child height (x-axis) versus mid-parent height (y-axis). Ordinarily, we might reverse the axes here because analysts would be more likely to model child height as a function of parent height, but we want to be able to compare the updated plot to Galton's original. Make your dots larger than the default and adjust transparency (`alpha`) to correct for overplotting and help show the density of points.
 
 Also include the following.
 
@@ -102,20 +158,40 @@ Also include the following.
 * use `coord_fixed()` so that the axes have the same unit spacing
 * add better x- and y-axis labels, including the units of measure
 * add an informative title (you may optionally include a subtitle)
-* add `color =` to `labs()` to set the legend title to `"gender of child"` 
+* add `color =` to `labs()` to set the legend title to `"gender of child"`
 * use `theme_linedraw()` to add some additional plot formatting
 * use `theme()` to move the legend to the bottom of the scatterplot
 
 ```{r updatedscatterplot1}
+Scatterplot1 <- ggplot(galtonfamilies_A, aes(x = child_ht, y = midparent, color = child_sex)) +
+                       geom_point(alpha = .5) +
+  scale_color_manual(values = c("magenta", "mediumblue")) +
+                        coord_fixed(ratio = 1) +
+      labs(title = "Galton child height verses average parent height", x = "child height (inches)", y = "mid-parent height (inches)", color = "gender of child") + 
+      theme_linedraw() +
+      theme(legend.position = "bottom")
+
+print(Scatterplot1)
+
+
 
 ```
 
 #### Updated Scatterplot #2
 
-Remove the color coding for sons versus daughters from your plot, as well as any other coding related to it. Instead, choose n single color for the points and adjust both `size` and transparency (`alpha`) as needed to correct for overplotting and help show the density of points. Reset the `aes` so child height is the `x` variable and midparent height is the `y` variable. Add a fitted *straight* line to the plot. Update your `labs` accordingly.
+Remove the color coding for sons versus daughters from your plot, as well as any other coding related to it. Instead, choose n single color for the points and adjust both `size` and transparency (`alpha`) as needed to correct for overplotting and help show the density of points. Reset the `aes` so child height is the `y` variable and midparent height is the `x` variable. Add a fitted *straight* line to the plot. Update your `labs` accordingly.
 
 ```{r updatedscatterplot2}
 
+Scatterplot2 <- ggplot(galtonfamilies_A, aes(x = midparent, y = child_ht,)) +
+                       geom_point(size = .8, alpha = .3)  +
+                        coord_fixed(ratio = 1) +
+  
+      labs(title = "Galton child height verses average parent height", y = "child height (inches)", x = "mid-parent height (inches)") + 
+      theme_linedraw() +
+      theme(legend.position = "bottom") 
+
+print(Scatterplot2)
 ```
 
 ### Part 2: Number of Children
@@ -123,7 +199,12 @@ Remove the color coding for sons versus daughters from your plot, as well as any
 Create a barplot to show the distribution of the number of children per family. Set the bars to something other than the default `width`. Scale the x-axis so that there is a tick mark for each bar. Choose appropriate colors, labels, themes, and/or and other types of formatting that you feel will enhance the meaning or visual appearance of the plot.
 
 ```{r childrenbarplot}
-
+barplot <- ggplot(galtonfamilies_A, aes(x = familyid, y = num_children, color = familyid)) +
+         geom_col(width = .05) +
+        scale_x_continuous(breaks = c(1:205), guide = guide_axis(n.dodge = 10)) +
+         labs(title = "Number of Children Per Family", x = "Family", y = "Number of Children") +
+  theme_linedraw()
+print(barplot)
 ```
 
 ## Questions
@@ -131,20 +212,18 @@ Create a barplot to show the distribution of the number of children per family. 
 **Question 1:** Do you think that your scatterplots are an improvement over Galton's original diagram? Are there any modifications and/or additions you would make to enhance the clarity or usefulness of your plots?
 
 **ANSWER**
+I think that the scatter plots allowed for adiquet visualization. Since galtons data compares a fairly middle range amount of data you need more then just a single scatter plot to see all of the comparisons that the data makes.
 
-ERASE THIS TEXT AND ANSWER QUESTION HERE
-
-**Question 2:** Explain the rationale behind the choices you made when creating your scatterplots and barplot, such as size, color, transparency, or other features. What motivated your decisions? 
+**Question 2:** Explain the rationale behind the choices you made when creating your scatterplots and barplot, such as size, color, transparency, or other features. What motivated your decisions?
 
 **ANSWER**
+I chose to use contrasting colors in order to clearly distinguish each part of the data. The transparency was lowers so that you could see points that had some overlap which I thoyght was easier for the viewer to see. I kept the size of the plots fairly small/ mid ranged since the data had so many points. 
 
-ERASE THIS TEXT AND ANSWER QUESTION HERE
 
 **Question 3:** Considering best practices, how does using `coord_fixed()` enhance the authenticity of the information shown in the scatterplots, such as the relationship and spread of the data?
 
 **ANSWER**
-
-ERASE THIS TEXT AND ANSWER QUESTION HERE
+It forces both axis to be on the same playing field. It allows for equal visualization of data because if one axis as at a different scale then you are forced to see a skewed set of data. 
 
 ***
 ```{r}

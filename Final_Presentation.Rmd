@@ -1,0 +1,106 @@
+---
+title: "Final Project Presentation"
+author: "Lindsay Nyman"
+date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: cosmo
+    highlight: textmate
+    code_folding: hide
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+
+##SETUP
+
+``` {r loadpackages}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(waffle)
+library(DT)
+
+```
+
+## LOAD DATASET 1
+
+``` {r loaddataset}
+billionaires_2021_10_31 <- read_csv("dataraw/billionaires_2021_10_31.csv")
+
+```
+
+## VISUALIZATION 1
+
+``` {r}
+#How many billionairs in the United State are in each Industry 
+
+bill1 <- filter(billionaires_2021_10_31, Country == c("UnitedStates"))
+
+bill2 <- bill1 %>% arrange(Industry)
+
+bill3 <- bill2 %>% count(Industry)
+
+bill3 <- rename(bill3, 
+                Num_bills = n)
+
+
+ggplot(bill3, aes(x= Industry , y= Num_bills, fill = Industry )) +
+  geom_col(alpha = .6) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 4)) + 
+  labs(title = "Which Industires in the United States have the most Billionaires?")
+```
+## Billionaires Explanation 
+
+### I chose to display the data that showed how many Billionaires in the United States came from each field of Work. I thought it was a cool visual to see because the two biggest Industries were Consumers and Finance which I find Ironic because Finance deals with money and obviously those particular billionaires were rather good at their job. 
+
+## LOAD DATASET 2
+
+```{r}
+ramenratings <- read_csv("dataraw/ramenratings.csv")
+
+
+```
+
+## VISUALIZATION 2 
+
+``` {r}
+#Which style of noodle has the best mean star rating
+#Whichy style of moodle is most popular in SOuth Korea
+ramen1 <- ramenratings %>% arrange(style)
+
+ramen2 <- ramen1 %>% count(style)
+
+ramen3 <- na.omit(ramen2)
+
+ramen4 <- na.omit(ramen1)
+
+ramen5 <- ramen1 %>% arrange(country)
+
+ramenA <- filter(ramen1, country == "South Korea" )
+
+ramenB <- ramenA %>% count(style)
+
+ramenC <- rename(ramenB, 
+                 Style_Total = n,
+                 Style = style)
+
+ggplot(ramenC, aes(x = Style , y = Style_Total, fill = Style)) +
+  geom_col(alpha = .9) +
+  labs(title = "Which style of Ramen is most Produced in South Korea? ")
+  
+
+```
+## Ramen Visualization Explanation
+
+### I chose to use this data because it had a wide variety of opions when it came to reading the data. It has multiple ways to dive into the data and I wanted to work with a data set that had options in case soemthing didnt quite work correctly.
+
+### The Ramen data set shows multiple countries in the worlds ramen production styles, ratings, and names among a few others. I chose to focus in on one Country in Specific which produced a large mount of Ramen, South Korea. Using a Bar graph you can clearly see that Pack style of Ramen is the most produced while Tray is the style least Produced. 
+
